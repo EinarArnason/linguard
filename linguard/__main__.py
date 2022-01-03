@@ -5,12 +5,14 @@ from logging import warning, fatal, info, debug
 
 from flask import Flask
 from flask_login import LoginManager
+
 from flask_qrcode import QRcode
 
 from linguard.__version__ import commit, release
 from linguard.common.models.user import users
 from linguard.common.properties import global_properties
 from linguard.common.utils.system import try_makedir
+from linguard.core.managers.oidc import oidc
 from linguard.core.managers.cron import cron_manager
 from linguard.core.managers.wireguard import wireguard_manager
 from linguard.web.static.assets.resources import APP_NAME
@@ -50,7 +52,20 @@ config_manager.load()
 if log_config.overwrite:
     log_config.reset_logfile()
 
-app.config['SECRET_KEY'] = web_config.secret_key
+app.config.update({
+    'SECRET_KEY': web_config.secret_key,
+    'OIDC_CLIENT_SECRETS': global_properties.join_workdir("client_secrets.json"),
+    'OIDC_ID_TOKEN_COOKIE_SECURE': True,
+    'OIDC_REQUIRE_VERIFIED_EMAIL': False,
+    'OIDC_USER_INFO_ENABLED': True,
+    'OIDC_OPENID_REALM': 'master',
+    'OIDC_SCOPES': ['openid', 'email', 'profile'],
+    'OIDC_INTROSPECTION_AUTH_METHOD': 'client_secret_post',
+    'OVERWRITE_REDIRECT_URI': 'https://vpn.systemat.is/oidc_callback'
+})
+
+
+oidc.init_app(app)
 app.register_blueprint(router)
 QRcode(app)
 login_manager.init_app(app)

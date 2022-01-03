@@ -1,2 +1,2 @@
-release = '0.1.1'
-commit = 'ba9bf1162adf017ea5994d74237485a701ba581a'
+release = '1.1.0'
+commit = 'ea78598f8192938c75116adf5e0feb58d81dce7a'

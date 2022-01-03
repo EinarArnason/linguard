@@ -15,6 +15,7 @@ class WebConfig(BaseConfig):
     DEFAULT_LOGIN_ATTEMPTS = 0
     DEFAULT_BAN_SECONDS = 120
     CREDENTIALS_FILENAME = ".credentials"
+    
 
     __secret_key: str
     login_attempts: int

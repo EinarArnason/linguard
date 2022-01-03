@@ -45,7 +45,7 @@ class TrafficStorageDriver(YamlAble):
         :return: A dictionary containing traffic data of peers and interfaces, indexed by their names.
         """
         dct = {}
-        json_data = run_tool("wg-json").output
+        json_data = run_tool("/usr/share/wireguard-tools/examples/json/wg-json").output
         data = json.loads(json_data)
         for iface in interfaces.values():
             if iface.name not in data:

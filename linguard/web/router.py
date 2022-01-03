@@ -11,7 +11,7 @@ from urllib.parse import parse_qs, urlparse
 from flask import Blueprint, abort, request, Response, redirect, url_for
 from flask_login import current_user, login_required, login_user
 
-from linguard.common.models.user import users
+from linguard.common.models.user import users, User
 from linguard.common.properties import global_properties
 from linguard.common.utils.logs import log_exception
 from linguard.common.utils.network import get_routing_table, get_system_interfaces
@@ -24,12 +24,14 @@ from linguard.core.config.wireguard import config as wireguard_config
 from linguard.core.drivers.traffic_storage_driver import TrafficData
 from linguard.core.exceptions import WireguardError
 from linguard.core.managers.config import config_manager
+from linguard.core.managers.oidc import oidc
 from linguard.core.models import interfaces, Interface, get_all_peers, Peer
 from linguard.core.utils.wireguard import is_wg_iface_up
 from linguard.web.client import clients, Client
 from linguard.web.controllers.RestController import RestController
 from linguard.web.controllers.ViewController import ViewController
 from linguard.web.static.assets.resources import EMPTY_FIELD, APP_NAME
+
 
 
 def get_referrer_next_value():
@@ -45,6 +47,7 @@ class Router(Blueprint):
         super().__init__(name, import_name)
         self.login_attempts = 1
         self.banned_until = None
+        self.add_url_rule
 
 
 router = Router("router", __name__)
@@ -63,10 +66,16 @@ def setup_required(f):
 
 
 @router.route("/")
+def index():
+    if (True):
+        return redirect(url_for("router.oidc_login"))
+    
+    return redirect(url_for("router.dashboard"))
+
 @router.route("/dashboard")
 @login_required
 @setup_required
-def index():
+def dashboard():
     if traffic_config.enabled:
         traffic = traffic_config.driver.get_session_and_stored_data()
     else:
@@ -120,6 +129,7 @@ def __get_total_traffic__(uuid: str, traffic: Dict[datetime, Dict[str, TrafficDa
 @login_required
 @setup_required
 def logout():
+    oidc.logout()
     current_user.logout()
     return redirect(url_for("router.index"))
 
@@ -161,6 +171,18 @@ def login():
         context["banned_for"] = (client.banned_until - datetime.now()).seconds
     return ViewController("web/login.html", **context).load()
 
+
+@router.route("/oidc_login")
+@oidc.require_login
+def oidc_login(): 
+    username = oidc.user_getfield("preferred_username")
+    user = User(username)
+    user.password = oidc.get_access_token()
+    user.login(oidc.get_access_token())
+    users[user.id] = user
+    login_user(user)
+ 
+    return redirect(url_for("router.dashboard"))
 
 def run_ban_timer():
     sleep(web_config.login_ban_time)
